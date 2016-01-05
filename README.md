@@ -1,6 +1,6 @@
 # MVA Downloader
 
-This is a very simple tool only for downloading the resources on [MVA](https://mva.microsoft.com). 
+This is a very simple tool only for downloading the resources on [MVA](https://mva.microsoft.com){:target="_blank"}. 
 
 One reason for writting this tool is the subtitle could not be downloaded on the offical site, and you can download **.srt** file by this tool :)
 
