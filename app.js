@@ -70,7 +70,7 @@ app.get('/course', function (req, res, next) {
             } catch (err) {
                 res.json({
                     success: false,
-                    msg: '无法获取课程信息'
+                    msg: 'Can not get the course data'
                 })
             }
         })
