@@ -2,124 +2,139 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <title>MVA Downloader</title>
-    <style>
-    #loading {
-        display: none;
-    }
-    </style>
+  <meta charset="utf-8">
+  <title>MVA Downloader</title>
+  <style>
+  #loading {
+    display: none;
+  }
+  </style>
 </head>
 
 <body>
-    <h1>MVA Downloader</h1>
-    <form id="form">
-        <input id="courseUrl" type="text" placeholder="Enter MVA course page URL" style="width:480px;">
-        <button type="submit">Search</button>
-    </form>
-    <div id="result">
-    </div>
-    <p id="loading">Loading...</p>
-    <script src="http://cdn.staticfile.org/jquery/2.1.4/jquery.min.js"></script>
-    <script>
-    var $form = $('#form')
-    var $courseUrl = $('#courseUrl')
-    var $result = $('#result')
-    var $loading = $('#loading')
-    var parseFailed
+  <h1>MVA Downloader</h1>
+  <form id="form">
+    <input id="courseUrl" type="text" placeholder="Enter MVA course page URL" style="width:480px;">
+    <button type="submit">Search</button>
+  </form>
+  <div id="result">
+  </div>
+  <p id="loading">Loading...</p>
+  <script src="http://cdn.staticfile.org/jquery/2.1.4/jquery.min.js"></script>
+  <script>
+  var $form = $('#form')
+  var $courseUrl = $('#courseUrl')
+  var $result = $('#result')
+  var $loading = $('#loading')
+  var parseFailed
 
-    $('#form').on('submit', function(event) {
+  $('#form').on('submit', function(event) {
 
-        var config, baseUrl
+    var config, baseUrl
 
-        var courseUrl = $('#courseUrl').val()
+    var courseUrl = $('#courseUrl').val()
 
-        parseFailed = false
+    parseFailed = false
 
-        event.preventDefault()
+    event.preventDefault()
 
-        $result.html('')
+    $result.html('')
 
-        $loading.show()
+    $loading.show()
 
-        $.ajax({
-            url: '/course',
-            data: {
-                url: courseUrl
-            },
-            dataType: 'json'
-        }).then(function(data) {
-            if (data.courseID) {
-                config = data;
-                return $.ajax({
-                    url: '/proxy',
-                    data: {
-                        url: 'https://api-mlxprod.microsoft.com/services/products/anonymous/' + config.courseID + '?version=' + config.courseVersion + '&isTranscript=' + !!config.isTranscript + '&languageId=' + config.languageId
-                    },
-                    dataType: 'html'
-                })
-            } else {
-                $result.html('<p>Can not parse this page.</p>')
-                $loading.hide()
-                parseFailed = true
-            }
-        }, function() {
-            $result.html('<p>Can not parse this page.</p>')
-            $loading.hide()
-            parseFailed = true
-        }).then(function(data) {
-            if (parseFailed) {
-                $result.html('<p>Can not parse this page.</p>')
-                $loading.hide()
-                return false
-            }
-            baseUrl = data.replace(/\\/g, '').replace(/"/g, '') + '/'
-            $.ajax({
-                url: '/proxy',
-                data: {
-                    url: baseUrl + 'imsmanifestlite.json'
-                },
-                dataType: 'json'
-            }).then(function(data) {
-                $result.append('<h2>' + data.manifest.metadata.title + '</h2>')
-                var lessons = data.manifest.organizations.organization[0].item
-                lessons.forEach(function(lesson, index) {
-                    var materials = lesson.item
-                    var lessonId = lesson['@identifier']
-                    $result.append('<h3>' + lesson.title + '</h3>')
-                    $result.append('<ul id="' + lessonId + '"></ul>')
-                    materials.forEach(function(material) {
-                        var resource = material.resource
-                        var materialId = material['@identifier']
-                        switch (resource.metadata.learningresourcetype) {
-                            case 'Video':
-                                $('#' + lessonId).append('<li id="' + materialId + '">Analyzing...</li>')
-                                $.ajax({
-                                    url: '/proxy',
-                                    data: {
-                                        url: baseUrl + resource['@href'].match(/settingsUrl=(.+?$)/)[1] + '/videosettings.xml?v=1'
-                                    },
-                                    dataType: 'xml'
-                                }).then(function(data) {
-                                    var $video = $('MediaSource:eq(0)', data)
-                                    var $subtitle = $('MarkerResourceSource', data)
-                                    var videoName = $video.html().match(/([^\/]+?)\.mp4/)[1]
-                                    if ($subtitle.length) {
-                                        $('#' + materialId).html('<p><a href="' + $video.html() + '" download>Video</a>&nbsp;&nbsp;<a href="/srt?url=' + encodeURIComponent(baseUrl + $subtitle.html()) + '&filename=' + encodeURIComponent(videoName) + '" target="blank" download>Subtitle</a></p>')
-                                    }
-                                })
-                                break
-                            case 'PDF':
-                                $('#' + lessonId).append('<li><p><a href="' + baseUrl + resource['@href'].replace('../../common/pdfviewer/viewer.html?file=', '') + '" download>PDF</a></p></li>')
-                                break
-                        }
-                    })
-                    $loading.hide()
-                })
-            })
+    $.ajax({
+      url: '/course',
+      data: {
+        url: courseUrl
+      },
+      dataType: 'json'
+    }).then(function(data) {
+      if (data.courseID) {
+        // get course info
+        config = data;
+        return $.ajax({
+          url: '/proxy',
+          data: {
+            url: 'https://api-mlxprod.microsoft.com/services/products/anonymous/' + config.courseID + '?version=' + config.courseVersion + '&isTranscript=' + !!config.isTranscript + '&languageId=' + config.languageId
+          },
+          dataType: 'html'
         })
+      } else {
+        $result.html('<p>Can not parse this page.</p>')
+        $loading.hide()
+        parseFailed = true
+      }
+    }, function() {
+      $result.html('<p>Can not parse this page.</p>')
+      $loading.hide()
+      parseFailed = true
+    }).then(function(data) {
+      if (parseFailed) {
+        $result.html('<p>Can not parse this page.</p>')
+        $loading.hide()
+        return false
+      }
+      baseUrl = data.replace(/\\/g, '').replace(/"/g, '') + '/'
+      
+      $.ajax({
+        url: '/proxy',
+        data: {
+          url: baseUrl + 'imsmanifestlite.json'
+        },
+        dataType: 'json'
+      }).then(function(data) {
+        $result.append('<h2>' + data.manifest.metadata.title + '</h2>')
+        var lessons = data.manifest.organizations.organization[0].item
+        lessons.forEach(function(lesson, index) {
+          var materials = lesson.item
+          var lessonId = lesson['@identifier']
+          $result.append('<h3>' + lesson.title + '</h3>')
+          $result.append('<ul id="' + lessonId + '"></ul>')
+          materials.forEach(function(material) {
+            var resource = material.resource
+            var materialId = material['@identifier']
+            switch (resource.metadata.learningresourcetype) {
+              case 'Video':
+                $('#' + lessonId).append('<li id="' + materialId + '">Analyzing...</li>')
+                $.ajax({
+                  url: '/proxy',
+                  data: {
+                    url: baseUrl + resource['@href'].match(/settingsUrl=(.+?$)/)[1] + '/videosettings.xml?v=1'
+                  },
+                  dataType: 'xml'
+                }).then(function(data) {
+                  var $videoList = $('MediaSource', data)
+                  var $subtitle = $('MarkerResourceSource', data)
+                  var videoHtml = '<p>'
+                  var videoName
+                  $videoList.each(function() {
+                    var $video = $(this)
+                    var videoUrl = $video.html()
+                    if(videoUrl) {
+                      videoName = videoName || videoUrl.match(/([^\/]+?)\.[^\.]+?$/)[1]
+                      videoHtml += '<a href="' + videoUrl + '" download>Video(' + $video.attr('videoMode') + ')</a>&nbsp;&nbsp;'
+                    }
+                  })
+                  videoName = videoName || materialId
+                  if ($subtitle.length) {
+                    console.log(videoName)
+                    videoHtml += '<a href="/srt?url=' + encodeURIComponent(baseUrl + $subtitle.html()) + '&filename=' + encodeURIComponent(videoName) + '" target="blank" download>Subtitle</a>'
+                  }
+                  videoHtml += '</p>'
+                  $('#' + materialId).html(videoHtml)
+                })
+                break
+              case 'PDF':
+                $('#' + lessonId).append('<li><p><a href="' + baseUrl + resource['@href'].replace('../../common/pdfviewer/viewer.html?file=', '') + '" download>PDF</a></p></li>')
+                break
+            }
+          })
+          $loading.hide()
+        })
+      })
     })
-    </script>
+  })
+  </script>
 </body>
 
 </html>
