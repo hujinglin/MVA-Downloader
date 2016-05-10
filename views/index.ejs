@@ -75,7 +75,6 @@
         return false
       }
       baseUrl = data.replace(/\\/g, '').replace(/"/g, '') + '/'
-      
       $.ajax({
         url: '/proxy',
         data: {
@@ -110,7 +109,7 @@
                   $videoList.each(function() {
                     var $video = $(this)
                     var videoUrl = $video.html()
-                    if(videoUrl) {
+                    if(videoUrl && !/manifest$/.test(videoUrl)) {
                       videoName = videoName || videoUrl.match(/([^\/]+?)\.[^\.]+?$/)[1]
                       videoHtml += '<a href="' + videoUrl + '" download>Video(' + $video.attr('videoMode') + ')</a>&nbsp;&nbsp;'
                     }
