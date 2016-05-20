@@ -1,7 +1,8 @@
 var path = require('path')
 var https = require('https')
-var cheerio = require('cheerio')
 var express = require('express')
+var cheerio = require('cheerio')
+var phantom = require('phantom')
 var config = require('./config')
 
 var app = express()
@@ -12,22 +13,22 @@ app.set('view engine', 'ejs')
 
 app.use('/assets', express.static(__dirname + '/assets'));
 
-app.get('/', function(req, res, next) {
+app.get('/', function (req, res, next) {
   res.render('index')
 })
 
-app.get('/srt', function(req, res, next) {
-  https.get(decodeURIComponent(req.query.url), function(ares) {
+app.get('/srt', function (req, res, next) {
+  https.get(decodeURIComponent(req.query.url), function (ares) {
     var data = ''
-    ares.on('data', function(chunk) {
+    ares.on('data', function (chunk) {
       data += chunk
     })
-    ares.on('end', function() {
+    ares.on('end', function () {
       var srt = ''
       $ = cheerio.load(data, {
         xmlMode: true
       })
-      $('p').each(function(index) {
+      $('p').each(function (index) {
         var $item = $(this)
         var beginArr = $item.attr('begin').split(':')
         var endArr = $item.attr('end').split(':')
@@ -44,56 +45,56 @@ app.get('/srt', function(req, res, next) {
   })
 })
 
-app.get('/proxy', function(req, res, next) {
-  https.get(decodeURIComponent(req.query.url), function(ares) {
+app.get('/proxy', function (req, res, next) {
+  https.get(decodeURIComponent(req.query.url), function (ares) {
     var data = ''
-    ares.on('data', function(chunk) {
+    ares.on('data', function (chunk) {
       data += chunk
     })
-    ares.on('end', function() {
+    ares.on('end', function () {
       res.send(data)
     })
   })
 })
 
-app.get('/course', function(req, res, next) {
-  var areq = https.request({
-    protocol: 'https:',
-    hostname: 'mva.microsoft.com',
-    path: req.query.path,
-    port: 443,
-    method: 'GET',
-    headers: {
-      'accept-encoding': 'gzip, deflate, sdch',
-      'accept-language': '*',
-      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.94 Safari/537.36'
-    }
-  }, function(ares) {
-    var data = ''
-    ares.on('data', function(chunk) {
-      data += chunk
+app.get('/course', function (req, res, next) {
+  var sitepage = null;
+  var phInstance = null
+  phantom.create()
+    .then(function (instance) {
+      phInstance = instance
+      return phInstance.createPage()
     })
-    ares.on('end', function() {
-      try {
-        res.json(eval('({' + data.replace(/[\r\n]/g, '').match(/mvaApiTargetHostname.+?\s*?,\s*?linkedinSocialShareUrlTemplate:\s*?'.+?'/)[0] + '})'))
-      } catch (err) {
-        res.json({
-          success: false,
-          msg: 'Can not get the course data'
-        })
-      }
+    .then(function (page) {
+      sitepage = page
+      sitepage.setting('javascriptEnabled', false)
+      sitepage.setting('loadImages', false)
+      return sitepage.open(req.query.url)
     })
-  })
-  areq.end()
+    .then(function (status) {
+      return sitepage.property('content')
+    })
+    .then(function (content) {
+      sitepage.close()
+      phInstance.exit()
+      res.json(eval('({' + content.replace(/[\r\n]/g, '').match(/mvaApiTargetHostname.+?\s*?,\s*?linkedinSocialShareUrlTemplate:\s*?'.+?'/)[0] + '})'))
+    })
+    .catch(function (error) {
+      phInstance.exit()
+      res.json({
+        success: false,
+        msg: 'Can not get the course data'
+      })
+    })
 })
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   var err = new Error('404 Not Found')
   err.status = 404
   next(err)
 })
 
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   res.status(err.status || 500)
   res.render('error', {
     message: err.message,

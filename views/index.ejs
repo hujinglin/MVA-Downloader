@@ -45,7 +45,7 @@
     $.ajax({
       url: '/course',
       data: {
-        path: courseUrl.replace('https://mva.microsoft.com', '')
+        url: courseUrl
       },
       dataType: 'json'
     }).then(function(data) {
