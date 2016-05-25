@@ -115,7 +115,7 @@
                     }
                   })
                   videoName = videoName || materialId
-                  if ($subtitle.length) {
+                  if ($subtitle.length && $subtitle.html()) {
                     videoHtml += '<a href="/srt?url=' + encodeURIComponent(baseUrl + $subtitle.html()) + '&filename=' + encodeURIComponent(videoName) + '" target="blank" download>Subtitle</a>'
                   }
                   videoHtml += '</p>'

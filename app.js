@@ -30,13 +30,30 @@ app.get('/srt', function (req, res, next) {
       })
       $('p').each(function (index) {
         var $item = $(this)
+        var itemHtml = $item.html().replace(/<br\/?>/g, '\r\n')
+        var itemText = $('<div>' + itemHtml + '</div>').text().trim()
         var beginArr = $item.attr('begin').split(':')
         var endArr = $item.attr('end').split(':')
-        var beginA = beginArr.slice(0, 3).join(':')
-        var beginB = parseInt(beginArr[3] / 60 * 1000)
-        var endA = endArr.slice(0, 3).join(':')
-        var endB = parseInt(endArr[3] / 60 * 1000)
-        srt += index + 1 + '\r\n' + beginA + ',' + beginB + ' --> ' + endA + ',' + endB + '\r\n' + $item.text().trim() + '\r\n\r\n'
+        var beginA, beginB, endA, endB, tmp 
+        if (beginArr.length === 3) {
+          tmp = beginArr[2]
+          beginArr[2] = tmp.replace(/\.\d+?$/, '')
+          beginArr[3] = tmp.replace(/^\d+?\./, '')
+          beginB = parseInt(beginArr[3])
+        } else {
+          beginB = parseInt(beginArr[3] / 60 * 1000)
+        }
+        beginA = beginArr.slice(0, 3).join(':')
+        if (endArr.length === 3) {
+          tmp = endArr[2]
+          endArr[2] = tmp.replace(/\.\d+?$/, '')
+          endArr[3] = tmp.replace(/^\d+?\./, '')
+          endB = parseInt(endArr[3])
+        } else {
+          endB = parseInt(endArr[3] / 60 * 1000)
+        }
+        endA = endArr.slice(0, 3).join(':')
+        srt += index + 1 + '\r\n' + beginA + ',' + beginB + ' --> ' + endA + ',' + endB + '\r\n' + itemText + '\r\n\r\n'
       })
       res.set('Content-Disposition', 'attachment;filename=' + decodeURIComponent(req.query.filename) + '.srt')
       res.set('Content-Type', 'application/octet-stream')
