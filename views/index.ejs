@@ -92,6 +92,9 @@
           materials.forEach(function(material) {
             var resource = material.resource
             var materialId = material['@identifier']
+            if (!resource) {
+              return false
+            }
             switch (resource.metadata.learningresourcetype) {
               case 'Video':
                 $('#' + lessonId).append('<li id="' + materialId + '">Analyzing...</li>')

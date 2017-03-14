@@ -25,7 +25,7 @@ server.on('error', function (err) {
     process.exit(1)
 })
 
-console.log('Server started on port:' + config.port)
+console.log('Server started on http://localhost:' + config.port)
 
 
 
